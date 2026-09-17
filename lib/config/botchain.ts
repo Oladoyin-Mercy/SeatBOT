@@ -8,7 +8,7 @@ export const BOT_CHAIN_CONFIG: Record<NetworkType, NetworkConfig> = {
     rpcUrl: process.env.NEXT_PUBLIC_BOT_MAINNET_RPC || "https://rpc.botchain.ai",
     currencySymbol: "BOT",
     explorerUrl: "https://scan.botchain.ai",
-    contractAddress: process.env.NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT || "0x9183c90302e9b5658e381016f4d4f80918c1d677",
+    contractAddress: process.env.NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT || "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b",
   },
   testnet: {
     chainId: 968,

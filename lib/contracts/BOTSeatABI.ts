@@ -51,6 +51,22 @@ export const BOTSEAT_ABI = [
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "seatId",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSeats",
+        "type": "uint256"
+      }
+    ],
+    "name": "SeatOutOfBounds",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "Unauthorized",
     "type": "error"
@@ -130,15 +146,9 @@ export const BOTSEAT_ABI = [
         "internalType": "address",
         "name": "attendee",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
       }
     ],
-    "name": "SeatReserved",
+    "name": "ReservationCancelled",
     "type": "event"
   },
   {
@@ -167,9 +177,15 @@ export const BOTSEAT_ABI = [
         "internalType": "address",
         "name": "attendee",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
       }
     ],
-    "name": "ReservationCancelled",
+    "name": "SeatReserved",
     "type": "event"
   },
   {
@@ -251,6 +267,70 @@ export const BOTSEAT_ABI = [
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "events",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "venue",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "dateTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSeats",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reservedCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "organizer",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "metadataURI",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "isActive",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -457,57 +537,6 @@ export const BOTSEAT_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "reservationId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getReservation",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reservationId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "eventId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "seatId",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "attendee",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "reservedAt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "isCancelled",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct BOTSeat.Reservation",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "eventId",
         "type": "uint256"
       }
@@ -578,6 +607,74 @@ export const BOTSEAT_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "isSeatReserved",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "reservations",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "reservationId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "eventId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "seatId",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "attendee",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reservedAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isCancelled",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "eventId",
         "type": "uint256"
       },
@@ -595,7 +692,31 @@ export const BOTSEAT_ABI = [
         "type": "uint256"
       }
     ],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "seatToReservationId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

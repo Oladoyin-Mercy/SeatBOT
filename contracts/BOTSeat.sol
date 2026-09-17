@@ -4,7 +4,8 @@ pragma solidity ^0.8.20;
 /**
  * @title BOTSeat
  * @dev Blockchain-powered event seat reservation smart contract on BOT Chain.
- * Prevents double-booking, records verifiable seat reservations, and generates ticket proofs.
+ * Prevents double-booking, validates seat layouts, tracks active seat state,
+ * and generates verifiable on-chain reservation records.
  */
 contract BOTSeat {
     struct Event {
@@ -16,7 +17,7 @@ contract BOTSeat {
         uint256 totalSeats;
         uint256 reservedCount;
         address organizer;
-        string metadataURI; // e.g. JSON metadata containing banner image, layout format, etc.
+        string metadataURI; // JSON metadata containing banner image, layout format, etc.
         bool isActive;
     }
 
@@ -39,7 +40,11 @@ contract BOTSeat {
     mapping(uint256 => Reservation) public reservations;
     mapping(address => uint256[]) private _userReservations;
     mapping(uint256 => uint256[]) private _eventReservations;
+    
+    // Dynamic reserved seats tracking with O(1) swap-and-pop removal on cancellation
     mapping(uint256 => string[]) private _eventReservedSeats;
+    mapping(uint256 => mapping(string => uint256)) private _seatToArrayIndex; // 1-indexed (0 means not in array)
+    
     uint256[] private _allEventIds;
 
     // Custom Errors
@@ -47,6 +52,7 @@ contract BOTSeat {
     error EventInactive();
     error SeatAlreadyReserved(string seatId);
     error InvalidSeatId();
+    error SeatOutOfBounds(string seatId, uint256 maxSeats);
     error ReservationNotFound();
     error Unauthorized();
     error ReservationAlreadyCancelled();
@@ -80,9 +86,42 @@ contract BOTSeat {
     );
 
     constructor() {
-        // Initialize with standard starting IDs
         _eventIdCounter = 1;
         _reservationIdCounter = 1;
+    }
+
+    /**
+     * @notice Validates that seatId conforms to valid structure and does not exceed event seat capacity
+     * @param seatId The seat code (e.g. "A01", "A24", "B10", "25")
+     * @param totalSeats Total seats configured for the event
+     */
+    function _validateSeatId(string memory seatId, uint256 totalSeats) internal pure {
+        bytes memory b = bytes(seatId);
+        uint256 len = b.length;
+        if (len == 0 || len > 10) revert InvalidSeatId();
+
+        uint256 startIdx = 0;
+        bytes1 firstChar = b[0];
+
+        // Optional row letter prefix (A-Z or a-z)
+        if ((firstChar >= 0x41 && firstChar <= 0x5A) || (firstChar >= 0x61 && firstChar <= 0x7A)) {
+            startIdx = 1;
+            if (len == 1) revert InvalidSeatId(); // Must include numbers after letter
+        }
+
+        // Parse remaining characters as numeric seat number
+        uint256 seatNum = 0;
+        for (uint256 i = startIdx; i < len; i++) {
+            bytes1 char = b[i];
+            if (char < 0x30 || char > 0x39) {
+                revert InvalidSeatId();
+            }
+            seatNum = seatNum * 10 + (uint256(uint8(char)) - 48);
+        }
+
+        if (seatNum == 0 || seatNum > totalSeats) {
+            revert SeatOutOfBounds(seatId, totalSeats);
+        }
     }
 
     /**
@@ -136,18 +175,23 @@ contract BOTSeat {
     }
 
     /**
-     * @notice Reserve a specific seat for an event
+     * @notice Reserve a specific seat for an event (atomic double-booking prevention)
+     * @dev Attendee pays network gas only. No extra payment is accepted or retained.
      * @param eventId The ID of the event
      * @param seatId The seat code (e.g. "A24", "B03")
      */
     function reserveSeat(
         uint256 eventId,
         string memory seatId
-    ) external payable returns (uint256) {
+    ) external returns (uint256) {
         Event storage evt = events[eventId];
         if (evt.id == 0) revert EventNotFound();
         if (!evt.isActive) revert EventInactive();
-        if (bytes(seatId).length == 0) revert InvalidSeatId();
+        
+        // Validate seat format and ensure seat number does not exceed event capacity
+        _validateSeatId(seatId, evt.totalSeats);
+
+        // Prevent double booking
         if (isSeatReserved[eventId][seatId]) revert SeatAlreadyReserved(seatId);
 
         uint256 newReservationId = _reservationIdCounter++;
@@ -170,7 +214,10 @@ contract BOTSeat {
 
         _userReservations[msg.sender].push(newReservationId);
         _eventReservations[eventId].push(newReservationId);
+
+        // Track in reserved seats array with 1-based index mapping
         _eventReservedSeats[eventId].push(seatId);
+        _seatToArrayIndex[eventId][seatId] = _eventReservedSeats[eventId].length;
 
         emit SeatReserved(
             newReservationId,
@@ -185,6 +232,7 @@ contract BOTSeat {
 
     /**
      * @notice Cancel a reservation (can only be executed by attendee or event organizer)
+     * @dev Reclaims seat availability, removes from active seat list, and decrements reserved count
      * @param reservationId The unique reservation ID
      */
     function cancelReservation(uint256 reservationId) external {
@@ -205,6 +253,20 @@ contract BOTSeat {
             evt.reservedCount--;
         }
 
+        // Remove seat from _eventReservedSeats array using O(1) swap-and-pop
+        uint256 index1Based = _seatToArrayIndex[res.eventId][res.seatId];
+        if (index1Based > 0) {
+            uint256 idx = index1Based - 1;
+            uint256 lastIdx = _eventReservedSeats[res.eventId].length - 1;
+            if (idx != lastIdx) {
+                string memory lastSeat = _eventReservedSeats[res.eventId][lastIdx];
+                _eventReservedSeats[res.eventId][idx] = lastSeat;
+                _seatToArrayIndex[res.eventId][lastSeat] = index1Based;
+            }
+            _eventReservedSeats[res.eventId].pop();
+            delete _seatToArrayIndex[res.eventId][res.seatId];
+        }
+
         emit ReservationCancelled(
             reservationId,
             res.eventId,
@@ -220,12 +282,12 @@ contract BOTSeat {
         uint256 eventId,
         string memory seatId
     ) external view returns (bool isAvailable) {
-        if (events[eventId].id == 0) return false;
+        if (events[eventId].id == 0 || !events[eventId].isActive) return false;
         return !isSeatReserved[eventId][seatId];
     }
 
     /**
-     * @notice Get all reserved seat IDs for an event
+     * @notice Get all active reserved seat IDs for an event (excludes cancelled seats)
      */
     function getReservedSeats(
         uint256 eventId

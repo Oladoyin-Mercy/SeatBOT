@@ -1,0 +1,9 @@
+{
+  "network": "botchainMainnet",
+  "chainId": 677,
+  "rpcUrl": "https://rpc.botchain.ai",
+  "contractAddress": "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b",
+  "deployer": "0xD21984aFbcDC85Be0bd97eFAeE82C7d587dD1112",
+  "txHash": "0x3372a29de3e91038bbeb8fb2a48d8d638270e94b0d7a515650dd8f5bc275b0c4",
+  "deployedAt": "2026-09-17T08:19:37.712Z"
+}
