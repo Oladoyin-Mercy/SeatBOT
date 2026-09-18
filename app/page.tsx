@@ -33,6 +33,27 @@ export default function HomePage() {
           {/* Left Hero Content */}
           <div className="lg:col-span-7 space-y-6">
             
+            {/* Mainnet Trust Badge */}
+            <div className="inline-flex items-center gap-2">
+              <a
+                href="https://botchain.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Deployed on BOT Chain Mainnet
+              </a>
+              <a
+                href="https://scan.botchain.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-slate-400 hover:text-blue-600 transition-colors font-medium"
+              >
+                Explorer ↗
+              </a>
+            </div>
+
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
               Reserve your seat. <br />

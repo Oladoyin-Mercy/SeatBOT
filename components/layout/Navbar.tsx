@@ -111,7 +111,7 @@ export const Navbar: React.FC = () => {
               isCorrectNetwork ? (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200/80 text-emerald-700 rounded-lg text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>BOT Chain</span>
+                  <span>BOT Chain Mainnet</span>
                 </div>
               ) : (
                 <button
@@ -173,6 +173,12 @@ export const Navbar: React.FC = () => {
                           {networkName}
                         </span>
                       </div>
+                      {isCorrectNetwork && !isDemoWallet && (
+                        <div className="mt-1 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500">Chain ID:</span>
+                          <span className="font-mono font-semibold text-slate-600">677</span>
+                        </div>
+                      )}
                       {isDemoWallet && (
                         <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
                           Demo Sandbox Mode

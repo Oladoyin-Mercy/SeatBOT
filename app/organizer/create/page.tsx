@@ -15,15 +15,26 @@ import {
   Coins,
   Users,
   X,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink
 } from "lucide-react";
 import { useBOTSeat } from "@/lib/hooks/useBOTSeat";
 import { useWallet } from "@/lib/hooks/useWallet";
+import { formatAddress, getExplorerTxUrl } from "@/lib/config/botchain";
+
+type CreateEventStep = "idle" | "pending" | "success" | "failed";
+
+interface CreateEventResult {
+  eventId: number;
+  txHash: string;
+}
 
 export default function CreateEventPage() {
   const router = useRouter();
   const { createEvent } = useBOTSeat();
-  const { isConnected, connectWallet, address } = useWallet();
+  const { isConnected, connectWallet, address, isCorrectNetwork, switchNetwork } = useWallet();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -35,7 +46,11 @@ export default function CreateEventPage() {
   const [image, setImage] = useState("");
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Transaction state
+  const [txStep, setTxStep] = useState<CreateEventStep>("idle");
+  const [txResult, setTxResult] = useState<CreateEventResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,14 +91,17 @@ export default function CreateEventPage() {
       return;
     }
 
-    setIsSubmitting(true);
+    setTxStep("pending");
+    setErrorMessage(null);
+    setTxResult(null);
+
     try {
       const dateTimestamp = Math.floor(new Date(dateStr).getTime() / 1000);
       const parsedSeats = parseInt(seatsInput, 10);
       const totalSeats = !isNaN(parsedSeats) && parsedSeats > 0 ? parsedSeats : 100;
       const finalImage = image || imageUrlInput || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80";
 
-      const newId = await createEvent({
+      const result = await createEvent({
         name,
         description: description || "No description provided.",
         venue,
@@ -94,15 +112,97 @@ export default function CreateEventPage() {
         timeString: timeStr,
       });
 
-      if (newId) {
-        router.push(`/events/${newId}`);
+      if (result) {
+        setTxResult(result);
+        setTxStep("success");
+      } else {
+        throw new Error("Event creation returned no result.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Event creation failed:", err);
-    } finally {
-      setIsSubmitting(false);
+      setErrorMessage(err?.message || "Failed to create event on BOT Chain.");
+      setTxStep("failed");
     }
   };
+
+  // ── SUCCESS STATE ─────────────────────────────────────────────────────────
+  if (txStep === "success" && txResult) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center space-y-8">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-9 h-9" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900">Event Published on BOT Chain!</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Your event is live and ready for attendees to reserve seats.
+            </p>
+          </div>
+        </div>
+
+        {/* Result Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4 text-left">
+          
+          {/* Creator / Organizer */}
+          <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <span className="text-blue-700 font-semibold block">Event Organizer (Creator Wallet)</span>
+              <span className="font-mono text-blue-900 text-[11px]">{address}</span>
+            </div>
+            <ShieldCheck className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          </div>
+
+          {/* Details */}
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Event ID</span>
+              <span className="font-mono font-bold text-slate-900">#{txResult.eventId}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Network</span>
+              <span className="font-semibold text-emerald-700">BOT Chain Mainnet</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-500">Transaction Hash</span>
+              <span className="font-mono text-slate-700 text-[11px] truncate max-w-[180px]">{txResult.txHash}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Status</span>
+              <span className="font-semibold text-emerald-600">Confirmed on-chain ✓</span>
+            </div>
+          </div>
+
+          {/* Explorer Link */}
+          <a
+            href={getExplorerTxUrl(txResult.txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>View on BOT Chain Explorer</span>
+          </a>
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link
+            href={`/events/${txResult.eventId}`}
+            className="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors text-center"
+          >
+            View Your Event
+          </Link>
+          <Link
+            href="/organizer"
+            className="flex-1 py-3 px-6 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl border border-slate-200 transition-colors text-center"
+          >
+            Organizer Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -126,7 +226,37 @@ export default function CreateEventPage() {
         <p className="text-sm text-slate-500 mt-1">
           Publish your event and configure seating capacity on BOT Chain.
         </p>
+
+        {/* Any wallet can create callout */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2.5 text-xs text-blue-900">
+          <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>Open to all connected wallets.</strong> Any wallet connected to BOT Chain Mainnet can create an event — no admin approval or special role required. Your connected wallet will be automatically recorded as the event organizer on-chain.
+            {address && (
+              <div className="mt-1.5 font-mono text-[11px] text-blue-700 break-all">
+                Organizer: <span className="font-bold">{address}</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Error state */}
+      {txStep === "failed" && errorMessage && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-rose-900">Event Creation Failed</p>
+            <p className="text-xs text-rose-700 leading-relaxed">{errorMessage}</p>
+          </div>
+          <button
+            onClick={() => { setTxStep("idle"); setErrorMessage(null); }}
+            className="ml-auto p-1 text-rose-400 hover:text-rose-600 rounded"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Form Container */}
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -383,16 +513,18 @@ export default function CreateEventPage() {
               <span className="text-xs font-semibold text-emerald-400">BOT Chain Smart Contract Publishing</span>
             </div>
             <p className="text-xs text-slate-300">
-              Organizer wallet signs and permanently publishes event seating details on-chain.
+              {txStep === "pending"
+                ? "Waiting for wallet confirmation — please approve in your wallet..."
+                : "Organizer wallet signs and permanently publishes event seating details on-chain."}
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={txStep === "pending"}
             className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
-            {isSubmitting ? (
+            {txStep === "pending" ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Publishing Event...</span>

@@ -56,22 +56,44 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 3: Resources */}
+          {/* Col 3: BOT Chain Ecosystem */}
           <div>
             <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-3">
-              About BOTSeat
+              Powered by BOT Chain
             </h4>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li>
-                <span className="text-slate-600">Single-seat ownership protocol</span>
-              </li>
-              <li>
-                <span className="text-slate-600">Direct wallet-to-seat allocation</span>
-              </li>
-              <li>
-                <span className="text-slate-600">Instant digital QR pass generation</span>
-              </li>
-            </ul>
+            <div className="space-y-3">
+              {/* BOT Chain Mainnet badge */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-800">BOT Chain Mainnet</span>
+                <span className="text-[10px] font-mono text-emerald-600 ml-1">Chain ID 677</span>
+              </div>
+
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>
+                  <a
+                    href="https://botchain.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 transition-colors flex items-center gap-1.5"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                    botchain.ai
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://scan.botchain.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 transition-colors flex items-center gap-1.5"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                    BOT Chain Explorer
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
 
         </div>
@@ -80,7 +102,15 @@ export const Footer: React.FC = () => {
         <div className="border-t border-slate-100 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} BOTSeat. All rights reserved.</p>
           <div className="flex items-center gap-4 text-slate-500">
-            <span>Reserve your seat. Own your spot.</span>
+            <span>Deployed on</span>
+            <a
+              href="https://botchain.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-slate-700 hover:text-blue-600 transition-colors"
+            >
+              BOT Chain Mainnet
+            </a>
           </div>
         </div>
       </div>

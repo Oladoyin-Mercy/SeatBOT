@@ -257,42 +257,46 @@ export function useBOTSeat() {
     timeString?: string;
     rows?: number;
     colsPerRow?: number;
-  }): Promise<number | null> => {
+  }): Promise<{ eventId: number; txHash: string } | null> => {
     if (!isConnected || !address) {
-      alert("Please connect your wallet first.");
-      return null;
+      throw new Error("Please connect your wallet first.");
     }
 
-    try {
-      const signer = await getSigner();
-      if (!signer) throw new Error("Wallet not available");
-
-      const totalSeats = eventData.totalSeats && eventData.totalSeats > 0 ? eventData.totalSeats : 100;
-
-      const metadataURI = JSON.stringify({
-        image: eventData.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
-        category: eventData.category || "General Event",
-        timeString: eventData.timeString || "TBA",
-        rows: eventData.rows || 5,
-        colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
-      });
-
-      const { eventId } = await blockchainService.createEvent(signer, {
-        name: eventData.name,
-        description: eventData.description,
-        venue: eventData.venue,
-        dateTimestamp: eventData.dateTimestamp,
-        totalSeats,
-        metadataURI,
-      });
-
-      await loadEvents();
-      return eventId;
-    } catch (err: any) {
-      console.error("Create event failed:", err);
-      alert(err?.message || "Failed to create event on BOT Chain.");
-      return null;
+    // Network safety: block submissions to wrong chain
+    if (!isCorrectNetwork && !isDemoWallet) {
+      const switched = await switchNetwork("mainnet");
+      if (!switched) {
+        const currentLabel = chainId === 1 ? "Ethereum Mainnet" : networkName || (chainId ? `Chain ID ${chainId}` : "another network");
+        throw new Error(
+          `BOTSeat events must be created on BOT Chain Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch networks and try again.`
+        );
+      }
     }
+
+    const signer = await getSigner();
+    if (!signer) throw new Error("Wallet signer not available. Please reconnect your wallet.");
+
+    const totalSeats = eventData.totalSeats && eventData.totalSeats > 0 ? eventData.totalSeats : 100;
+
+    const metadataURI = JSON.stringify({
+      image: eventData.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
+      category: eventData.category || "General Event",
+      timeString: eventData.timeString || "TBA",
+      rows: eventData.rows || 5,
+      colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
+    });
+
+    const { eventId, txHash } = await blockchainService.createEvent(signer, {
+      name: eventData.name,
+      description: eventData.description,
+      venue: eventData.venue,
+      dateTimestamp: eventData.dateTimestamp,
+      totalSeats,
+      metadataURI,
+    });
+
+    await loadEvents();
+    return { eventId, txHash };
   };
 
   return {

@@ -275,16 +275,19 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   </span>
                 </div>
                 {txState.txHash && (
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                    <span className="text-slate-500">Transaction:</span>
+                  <div className="pt-2 border-t border-slate-200/60 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500">Transaction:</span>
+                      <span className="font-mono text-slate-700 text-[11px]">{formatAddress(txState.txHash)}</span>
+                    </div>
                     <a
                       href={getExplorerTxUrl(txState.txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors"
                     >
-                      <span>{formatAddress(txState.txHash)}</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>View on BOT Chain Explorer</span>
                     </a>
                   </div>
                 )}
