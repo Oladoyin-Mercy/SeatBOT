@@ -109,16 +109,16 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               {/* Informative Gas & Chain Box */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 font-medium">
-                  <span className="text-slate-600">Reservation Fee:</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    {parseFloat(event.priceInBot || "0.01") > 0 ? `${event.priceInBot || "0.01"} BOT` : "Free"}
+                  <span className="text-slate-600">Reservation:</span>
+                  <span className="font-mono font-bold text-emerald-600">
+                    Free
                   </span>
                 </div>
 
                 <div className="flex items-start gap-2.5 text-slate-700">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <span>
-                    Your reservation will be permanently recorded on <strong>BOT Chain</strong> smart contract.
+                    Reservation is free. You only pay standard <strong>BOT Chain</strong> network gas.
                   </span>
                 </div>
               </div>

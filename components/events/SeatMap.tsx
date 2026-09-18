@@ -228,7 +228,7 @@ export const SeatMap: React.FC<SeatMapProps> = ({
       <div className="mt-3 flex items-start gap-2 text-[11px] text-slate-500 px-1">
         <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
         <span>
-          This reservation is recorded on <strong>BOT Chain</strong> smart contract for <strong>0.01 BOT</strong> to permanently guarantee your spot.
+This reservation is recorded on the <strong>BOT Chain</strong> smart contract. Only network gas is required to permanently guarantee your spot.
         </span>
       </div>
     </div>

@@ -31,7 +31,6 @@ export default function CreateEventPage() {
   const [venue, setVenue] = useState("");
   const [dateStr, setDateStr] = useState("2026-10-20");
   const [timeStr, setTimeStr] = useState("09:00 AM - 05:00 PM WAT");
-  const [priceInBot, setPriceInBot] = useState("0.01");
   const [seatsInput, setSeatsInput] = useState("");
   const [image, setImage] = useState("");
   const [imageUrlInput, setImageUrlInput] = useState("");
@@ -93,7 +92,6 @@ export default function CreateEventPage() {
         image: finalImage,
         category,
         timeString: timeStr,
-        priceInBot: priceInBot.trim() || "0",
       });
 
       if (newId) {
@@ -126,7 +124,7 @@ export default function CreateEventPage() {
           Create an Event on BOT Chain
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Publish your event and configure custom seat capacity and reservation pricing.
+          Publish your event and configure seating capacity on BOT Chain.
         </p>
       </div>
 
@@ -234,39 +232,15 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        {/* Section 2: Pricing & Capacity (Seats) */}
+        {/* Section 2: Seating Capacity */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Coins className="w-4 h-4 text-blue-600" />
-            <span>Pricing & Seating Capacity</span>
+            <Users className="w-4 h-4 text-blue-600" />
+            <span>Seating Capacity</span>
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
-            {/* Reservation Price in BOT */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Reservation Price (in BOT) *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  required
-                  value={priceInBot}
-                  onChange={(e) => setPriceInBot(e.target.value)}
-                  placeholder="e.g. 0.05 (or 0 for Free)"
-                  className="w-full pl-4 pr-14 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
-                />
-                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-xs font-bold text-slate-500">
-                  BOT
-                </div>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Set custom fee in BOT. Enter <strong className="text-slate-700">0</strong> for free admission.
-              </p>
-            </div>
+          
 
             {/* Total Available Seats (Optional) */}
             <div className="space-y-1.5">
@@ -409,7 +383,7 @@ export default function CreateEventPage() {
               <span className="text-xs font-semibold text-emerald-400">BOT Chain Smart Contract Publishing</span>
             </div>
             <p className="text-xs text-slate-300">
-              Organizer wallet signs and permanently publishes event and reservation fee details on-chain.
+              Organizer wallet signs and permanently publishes event seating details on-chain.
             </p>
           </div>
 

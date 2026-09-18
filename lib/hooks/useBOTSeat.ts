@@ -26,7 +26,7 @@ export interface ReservationTransactionState {
 }
 
 export function useBOTSeat() {
-  const { address, isConnected, getSigner, isDemoWallet } = useWallet();
+  const { address, isConnected, getSigner, isDemoWallet, isCorrectNetwork } = useWallet();
   const [events, setEvents] = useState<BOTEvent[]>(INITIAL_FEATURED_EVENTS);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(false);
   const [userReservations, setUserReservations] = useState<Reservation[]>([]);
@@ -104,6 +104,18 @@ export function useBOTSeat() {
       return false;
     }
 
+    if (!isCorrectNetwork) {
+      setTxState({
+        step: "failed",
+        txHash: null,
+        reservationId: null,
+        seatId,
+        errorMessage: "Please switch your wallet to BOT Chain Mainnet.",
+        blockNumber: null,
+      });
+      return false;
+    }
+
     // Step 1: Prompt in wallet
     setTxState({
       step: "waiting_wallet",
@@ -126,10 +138,13 @@ export function useBOTSeat() {
       // If running on actual browser wallet with window.ethereum
       let txHash: string;
       let resId: number;
-
       if (!isDemoWallet && (window as any).ethereum) {
         try {
-          const result = await blockchainService.reserveSeat(signer, event.id, seatId, event.priceInBot);
+          const result = await blockchainService.reserveSeat(
+            signer,
+            event.id,
+            seatId
+          );
           txHash = result.txHash;
           resId = result.reservationId;
         } catch (contractErr: any) {
@@ -256,7 +271,6 @@ export function useBOTSeat() {
     image?: string;
     category?: string;
     timeString?: string;
-    priceInBot?: string;
     rows?: number;
     colsPerRow?: number;
   }): Promise<number | null> => {
@@ -269,15 +283,13 @@ export function useBOTSeat() {
       const signer = await getSigner();
       if (!signer) throw new Error("Wallet not available");
 
-      const rawPrice = eventData.priceInBot !== undefined ? String(eventData.priceInBot).trim() : "0.01";
-      const displayPrice = parseFloat(rawPrice) > 0 ? `${rawPrice} BOT` : "Free";
+      const displayPrice = "Free";
       const totalSeats = eventData.totalSeats && eventData.totalSeats > 0 ? eventData.totalSeats : 100;
 
       const metadataURI = JSON.stringify({
         image: eventData.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
         category: eventData.category || "General Event",
         timeString: eventData.timeString || "TBA",
-        priceInBot: rawPrice,
         rows: eventData.rows || 5,
         colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
       });
@@ -299,7 +311,6 @@ export function useBOTSeat() {
         category: eventData.category || "General Event",
         timeString: eventData.timeString || "TBA",
         price: displayPrice,
-        priceInBot: rawPrice,
         rows: eventData.rows || 5,
         colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
       };

@@ -62,10 +62,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
 
-      const handleChainChanged = (hexChain: string) => {
-        setChainId(parseInt(hexChain, 16));
-      };
+      const handleChainChanged = async (hexChain: string) => {
+  const newChainId = parseInt(hexChain, 16);
+  setChainId(newChainId);
 
+  try {
+    const accounts = await eth.request({ method: "eth_accounts" });
+
+    if (accounts.length > 0) {
+      const provider = new ethers.BrowserProvider(eth);
+      await updateBalance(accounts[0], provider);
+    } else {
+      setBotBalance("0.00");
+    }
+  } catch (error) {
+    console.error("Failed to refresh balance after network change:", error);
+    setBotBalance("0.00");
+  }
+};
       eth.on("accountsChanged", handleAccountsChanged);
       eth.on("chainChanged", handleChainChanged);
 
@@ -143,6 +157,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           params: [{ chainId: config.hexChainId }],
         });
         setChainId(config.chainId);
+        if (address) {
+          const provider = new ethers.BrowserProvider(eth);
+          await updateBalance(address, provider);
+        }
         return true;
       } catch (switchError: any) {
         // If the chain hasn't been added to MetaMask (error 4902)
@@ -165,6 +183,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               ],
             });
             setChainId(config.chainId);
+            if (address) {
+              const provider = new ethers.BrowserProvider(eth);
+              await updateBalance(address, provider);
+            }
             return true;
           } catch (addError) {
             console.error("Failed to add BOT Chain to wallet:", addError);

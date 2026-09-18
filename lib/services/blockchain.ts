@@ -26,8 +26,8 @@ export const INITIAL_FEATURED_EVENTS: BOTEvent[] = [
     image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
     category: "Developer Conference",
     timeString: "09:00 AM - 05:00 PM WAT",
-    price: "0.01 BOT",
-    priceInBot: "0.01",
+    price: "Free",
+    priceInBot: "0",
     rows: 5,
     colsPerRow: 10,
   },
@@ -44,7 +44,6 @@ export const INITIAL_FEATURED_EVENTS: BOTEvent[] = [
       image: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80",
       category: "AI & Innovation",
       timeString: "10:00 AM - 06:00 PM WAT",
-      priceInBot: "0.05",
       rows: 6,
       colsPerRow: 10,
     }),
@@ -52,8 +51,8 @@ export const INITIAL_FEATURED_EVENTS: BOTEvent[] = [
     image: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80",
     category: "AI & Innovation",
     timeString: "10:00 AM - 06:00 PM WAT",
-    price: "0.05 BOT",
-    priceInBot: "0.05",
+    price: "Free",
+    priceInBot: "0",
     rows: 6,
     colsPerRow: 10,
   },
@@ -70,7 +69,6 @@ export const INITIAL_FEATURED_EVENTS: BOTEvent[] = [
       image: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80",
       category: "Workshop & Hackathon",
       timeString: "11:00 AM - 04:00 PM WAT",
-      priceInBot: "0.02",
       rows: 4,
       colsPerRow: 10,
     }),
@@ -78,8 +76,8 @@ export const INITIAL_FEATURED_EVENTS: BOTEvent[] = [
     image: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80",
     category: "Workshop & Hackathon",
     timeString: "11:00 AM - 04:00 PM WAT",
-    price: "0.02 BOT",
-    priceInBot: "0.02",
+    price: "Free",
+    priceInBot: "0",
     rows: 4,
     colsPerRow: 10,
   }
@@ -121,8 +119,8 @@ export class BlockchainService {
       if (eventsData && eventsData.length > 0) {
         return eventsData.map((e: any) => {
           const meta = parseEventMetadata(e.metadataURI);
-          const rawPrice = meta.priceInBot !== undefined ? String(meta.priceInBot) : "0.01";
-          const displayPrice = parseFloat(rawPrice) > 0 ? `${rawPrice} BOT` : "Free";
+          const rawPrice = meta.priceInBot !== undefined ? String(meta.priceInBot) : "0";
+          const displayPrice = "Free";
           return {
             id: Number(e.id),
             name: e.name,
@@ -159,8 +157,8 @@ export class BlockchainService {
       const e: any = await (contract as any).getFunction("getEvent")(id);
       if (e && Number(e.id) > 0) {
         const meta = parseEventMetadata(e.metadataURI);
-        const rawPrice = meta.priceInBot !== undefined ? String(meta.priceInBot) : "0.01";
-        const displayPrice = parseFloat(rawPrice) > 0 ? `${rawPrice} BOT` : "Free";
+        const rawPrice = meta.priceInBot !== undefined ? String(meta.priceInBot) : "0";
+        const displayPrice = "Free";
         return {
           id: Number(e.id),
           name: e.name,
@@ -205,81 +203,58 @@ export class BlockchainService {
   }
 
   /**
-   * Reserve a seat on-chain with dynamic event price
+   * Reserve a seat on-chain.
+   * Reservation is free; the attendee only pays BOT Chain network gas.
    */
   async reserveSeat(
     signer: ethers.Signer,
     eventId: number,
-    seatId: string,
-    priceInBot: string = "0.01"
+    seatId: string
   ): Promise<{ txHash: string; reservationId: number }> {
     const contract = await this.getSignerContract(signer);
-    const numPrice = parseFloat(priceInBot || "0");
-    const valueWei = numPrice > 0 ? ethers.parseEther(String(priceInBot)) : 0n;
-    
-    // Execute on-chain transaction with dynamic BOT reservation fee and explicit gasLimit to skip estimateGas revert
+
     try {
       const tx = await contract.reserveSeat(eventId, seatId, {
-        value: valueWei,
         gasLimit: 300000n,
       });
+
       const receipt = await tx.wait();
 
-      // Find the SeatReserved event
-      let reservationId = Math.floor(Date.now() / 1000) % 10000;
-      if (receipt && receipt.logs) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = contract.interface.parseLog(log);
-            if (parsed && parsed.name === "SeatReserved") {
-              reservationId = Number(parsed.args.reservationId);
-              break;
-            }
-          } catch {}
+      if (!receipt || receipt.status !== 1) {
+        throw new Error("Reservation transaction failed on BOT Chain.");
+      }
+
+      let reservationId: number | null = null;
+
+      // Find the SeatReserved event emitted by the contract.
+      for (const log of receipt.logs ?? []) {
+        try {
+          const parsed = contract.interface.parseLog(log);
+
+          if (parsed && parsed.name === "SeatReserved") {
+            reservationId = Number(parsed.args.reservationId);
+            break;
+          }
+        } catch {
+          // Ignore logs that do not belong to BOTSeat.
         }
+      }
+
+      if (reservationId === null) {
+        throw new Error(
+          "Reservation was confirmed, but the SeatReserved event could not be found."
+        );
       }
 
       return {
-        txHash: receipt?.hash || tx.hash,
+        txHash: receipt.hash,
         reservationId,
       };
     } catch (err: any) {
-      // Re-throw if user rejected in wallet
-      if (err?.code === 4001 || err?.message?.includes("user rejected") || err?.message?.includes("User rejected")) {
-        throw err;
-      }
+      console.error("Seat reservation failed:", err);
 
-      console.warn("Direct contract call encountered RPC node issue / uninitialized event state, attempting direct transfer fallback:", err);
-
-      try {
-        const config = getNetworkConfig(this.network);
-        const toAddr = ethers.isAddress(config.contractAddress)
-          ? ethers.getAddress(config.contractAddress.toLowerCase())
-          : "0x9183c90302E9B5658E381016f4D4f80918C1D677";
-
-        const txData = contract.interface.encodeFunctionData("reserveSeat", [eventId, seatId]);
-        const directTx = await signer.sendTransaction({
-          to: toAddr,
-          value: valueWei,
-          data: txData,
-          gasLimit: 300000n,
-        });
-        const receipt = await directTx.wait();
-        return {
-          txHash: receipt?.hash || directTx.hash,
-          reservationId: Math.floor(Date.now() / 1000) % 10000,
-        };
-      } catch (directErr: any) {
-        if (directErr?.code === 4001 || directErr?.message?.includes("user rejected") || directErr?.message?.includes("User rejected")) {
-          throw directErr;
-        }
-        console.warn("Direct tx also encountered node issue, generating verified local reservation record:", directErr);
-        const pseudoBytes = ethers.randomBytes(32);
-        return {
-          txHash: ethers.hexlify(pseudoBytes),
-          reservationId: Math.floor(Date.now() / 1000) % 10000,
-        };
-      }
+      // Never create a fake/local reservation when the blockchain transaction fails.
+      throw err;
     }
   }
 

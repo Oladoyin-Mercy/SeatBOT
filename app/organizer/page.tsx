@@ -169,11 +169,9 @@ export default function OrganizerDashboard() {
                       <span className="text-[10px] font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200/50">
                         Active
                       </span>
-                      {evt.priceInBot && (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
-                          {parseFloat(evt.priceInBot) > 0 ? `${evt.priceInBot} BOT` : "Free"}
-                        </span>
-                      )}
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                        {evt.price || "Free"}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">

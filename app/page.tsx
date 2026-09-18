@@ -74,7 +74,7 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Custom BOT Pricing</span>
+                <span>Free Reservations</span>
               </div>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function HomePage() {
                     <span className="text-xl font-bold font-mono text-blue-600">Seat A24</span>
                   </div>
                   <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-mono font-bold text-xs rounded-md">
-                    0.01 BOT
+                    Free
                   </span>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function HomePage() {
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] text-slate-400 block">Fee</span>
-                    <span className="text-sm font-mono font-bold text-blue-400">0.01 BOT</span>
+                    <span className="text-sm font-mono font-bold text-blue-400">Free</span>
                   </div>
                 </div>
               </div>
@@ -217,8 +217,7 @@ export default function HomePage() {
               <span className="font-mono text-2xl font-black text-blue-400">03</span>
               <h3 className="text-base font-bold text-white">Reserve on-chain</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Confirm from your wallet. Pay 0.01 BOT + gas to record your reservation.
-              </p>
+Confirm from your wallet. Only network gas is required to record your reservation.              </p>
             </div>
 
             {/* Step 4 */}

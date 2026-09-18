@@ -254,10 +254,8 @@ export default function EventDetailsPage({
                   <div>
                     <span className="font-semibold text-slate-900 block">Registration Model</span>
                     <span className="text-slate-600">
-                      {parseFloat(currentEvent.priceInBot || "0.01") > 0 
-                        ? `${currentEvent.priceInBot || "0.01"} BOT Reservation` 
-                        : "Free Reservation"}
-                    </span>
+  Free reservation — network gas only
+</span>
                   </div>
                 </div>
               </div>
@@ -432,17 +430,14 @@ export default function EventDetailsPage({
                 <span className="font-semibold text-slate-900">Seat {activeSeatId}</span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
-                <span>Reservation Fee</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {parseFloat(currentEvent.priceInBot || "0.01") > 0 ? `${currentEvent.priceInBot || "0.01"} BOT` : "Free"}
-                </span>
+                <span>Reservation</span>
+                <span className="font-mono font-bold text-slate-900">Free</span>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 font-bold text-sm text-slate-900">
-                <span>Total Due</span>
-                <span className="font-mono text-blue-600">
-                  {parseFloat(currentEvent.priceInBot || "0.01") > 0 ? `${currentEvent.priceInBot || "0.01"} BOT` : "0 BOT (Free)"}
-                </span>
-              </div>
+
+<div className="flex items-center justify-between pt-2 border-t border-slate-100 font-bold text-sm text-slate-900">
+  <span>Total Due</span>
+  <span className="font-mono text-blue-600">Network gas only</span>
+</div>
             </div>
 
             {/* Action CTA Button */}
@@ -460,9 +455,7 @@ export default function EventDetailsPage({
                   disabled={availableSeats <= 0 || isSeatTaken || txState.step === "broadcasting" || txState.step === "confirming"}
                   className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-sm hover:shadow transition-all active:scale-98 flex items-center justify-center gap-2"
                 >
-                  <span>
-                    Reserve Seat ({parseFloat(currentEvent.priceInBot || "0.01") > 0 ? `${currentEvent.priceInBot || "0.01"} BOT` : "Free"})
-                  </span>
+                  <span>Reserve Seat</span>
                 </button>
               )}
             </div>
