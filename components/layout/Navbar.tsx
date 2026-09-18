@@ -30,17 +30,30 @@ export const Navbar: React.FC = () => {
     disconnectWallet, 
     botBalance,
     isDemoWallet,
+    isCorrectNetwork,
+    switchNetwork,
+    networkName,
   } = useWallet();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   const handleCopy = () => {
     if (address) {
       navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleSwitchNetwork = async () => {
+    setIsSwitching(true);
+    try {
+      await switchNetwork("mainnet");
+    } finally {
+      setIsSwitching(false);
     }
   };
 
@@ -93,6 +106,26 @@ export const Navbar: React.FC = () => {
           {/* Right Action: Wallet Button */}
           <div className="hidden md:flex items-center gap-3">
 
+            {/* Network Indicator when connected */}
+            {isConnected && (
+              isCorrectNetwork ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200/80 text-emerald-700 rounded-lg text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>BOT Chain</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSwitchNetwork}
+                  disabled={isSwitching}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold transition-all shadow-xs active:scale-95"
+                  title="Your wallet is on a different network. Click to switch to BOT Chain Mainnet."
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  <span>{isSwitching ? "Switching..." : "Switch to BOT Chain"}</span>
+                </button>
+              )
+            )}
+
             {/* Wallet Button */}
             {!isConnected ? (
               <button
@@ -134,12 +167,30 @@ export const Navbar: React.FC = () => {
                       <p className="font-mono text-xs font-semibold text-slate-900 break-all mt-0.5">
                         {address}
                       </p>
+                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-500">Network:</span>
+                        <span className={`font-semibold ${isCorrectNetwork ? "text-emerald-600" : "text-amber-600"}`}>
+                          {networkName}
+                        </span>
+                      </div>
                       {isDemoWallet && (
                         <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
                           Demo Sandbox Mode
                         </span>
                       )}
                     </div>
+
+                    {!isCorrectNetwork && !isDemoWallet && (
+                      <div className="px-3 py-1.5 border-b border-slate-100">
+                        <button
+                          onClick={handleSwitchNetwork}
+                          disabled={isSwitching}
+                          className="w-full py-1.5 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          Switch to BOT Chain Mainnet
+                        </button>
+                      </div>
+                    )}
 
                     <div className="py-1">
                       <button

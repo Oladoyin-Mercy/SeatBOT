@@ -26,7 +26,16 @@ export interface ReservationTransactionState {
 }
 
 export function useBOTSeat() {
-  const { address, isConnected, getSigner, isDemoWallet, isCorrectNetwork } = useWallet();
+  const { 
+    address, 
+    isConnected, 
+    getSigner, 
+    isDemoWallet, 
+    isCorrectNetwork, 
+    switchNetwork, 
+    chainId, 
+    networkName 
+  } = useWallet();
   const [events, setEvents] = useState<BOTEvent[]>(INITIAL_FEATURED_EVENTS);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(false);
   const [userReservations, setUserReservations] = useState<Reservation[]>([]);
@@ -104,16 +113,21 @@ export function useBOTSeat() {
       return false;
     }
 
-    if (!isCorrectNetwork) {
-      setTxState({
-        step: "failed",
-        txHash: null,
-        reservationId: null,
-        seatId,
-        errorMessage: "Please switch your wallet to BOT Chain Mainnet.",
-        blockNumber: null,
-      });
-      return false;
+    if (!isCorrectNetwork && !isDemoWallet) {
+      // Attempt auto network switch to BOT Chain Mainnet
+      const switched = await switchNetwork("mainnet");
+      if (!switched) {
+        const currentLabel = chainId === 1 ? "Ethereum Mainnet" : networkName || (chainId ? `Chain ID ${chainId}` : "another network");
+        setTxState({
+          step: "failed",
+          txHash: null,
+          reservationId: null,
+          seatId,
+          errorMessage: `SeatBOT smart contracts are deployed on BOT Chain Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch to BOT Chain Mainnet to reserve seats.`,
+          blockNumber: null,
+        });
+        return false;
+      }
     }
 
     // Step 1: Prompt in wallet
@@ -130,50 +144,20 @@ export function useBOTSeat() {
       const signer = await getSigner();
       
       if (!signer) {
-        throw new Error("Could not retrieve wallet signer.");
+        throw new Error("Could not retrieve wallet signer. Please ensure your wallet is connected.");
       }
 
       setTxState(prev => ({ ...prev, step: "broadcasting" }));
 
-      // If running on actual browser wallet with window.ethereum
-      let txHash: string;
-      let resId: number;
-      if (!isDemoWallet && (window as any).ethereum) {
-        try {
-          const result = await blockchainService.reserveSeat(
-            signer,
-            event.id,
-            seatId
-          );
-          txHash = result.txHash;
-          resId = result.reservationId;
-        } catch (contractErr: any) {
-          console.warn("Contract transaction failed on-chain:", contractErr);
-          // If contract error is SeatAlreadyReserved
-          if (contractErr?.message?.includes("SeatAlreadyReserved") || contractErr?.data?.includes("SeatAlreadyReserved")) {
-            setTxState({
-              step: "failed",
-              txHash: null,
-              reservationId: null,
-              seatId,
-              errorMessage: "Seat no longer available. Someone else reserved this seat before your transaction was confirmed.",
-              blockNumber: null,
-            });
-            return false;
-          }
-          throw contractErr;
-        }
-      } else {
-        // Simulated real block confirmation for demo/sandbox environments
-        await new Promise(resolve => setTimeout(resolve, 1400));
-        setTxState(prev => ({ ...prev, step: "confirming" }));
-        await new Promise(resolve => setTimeout(resolve, 1800));
+      // Call blockchainService.reserveSeat (0 BOT value, gas only)
+      const result = await blockchainService.reserveSeat(
+        signer,
+        event.id,
+        seatId
+      );
 
-        // Generate genuine-format random hash and unique sequential reservation ID
-        const pseudoBytes = ethers.randomBytes(32);
-        txHash = ethers.hexlify(pseudoBytes);
-        resId = Math.floor(Math.random() * 800) + 100;
-      }
+      const txHash = result.txHash;
+      const resId = result.reservationId;
 
       const newReservation: Reservation = {
         reservationId: resId,
@@ -190,7 +174,6 @@ export function useBOTSeat() {
 
       // Persist in local storage for instant sync
       if (typeof window !== "undefined") {
-        // Save for this user
         const existingKey = `botseat_user_res_${address.toLowerCase()}`;
         const existingStr = localStorage.getItem(existingKey);
         const list: Reservation[] = existingStr ? JSON.parse(existingStr) : [];
@@ -218,7 +201,7 @@ export function useBOTSeat() {
         reservationId: resId,
         seatId,
         errorMessage: null,
-        blockNumber: 1248921,
+        blockNumber: null,
       });
 
       // Reload lists
@@ -227,13 +210,14 @@ export function useBOTSeat() {
 
     } catch (err: any) {
       console.error("Reservation failed:", err);
-      if (err?.code === 4001 || err?.message?.includes("user rejected")) {
+      const errMsg = err?.message || "Reservation could not be completed on BOT Chain.";
+      if (err?.code === 4001 || errMsg.includes("cancelled in your wallet") || errMsg.includes("rejected")) {
         setTxState({
           step: "rejected",
           txHash: null,
           reservationId: null,
           seatId,
-          errorMessage: "Transaction cancelled in wallet.",
+          errorMessage: "Transaction was cancelled in your wallet.",
           blockNumber: null,
         });
       } else {
@@ -242,7 +226,7 @@ export function useBOTSeat() {
           txHash: null,
           reservationId: null,
           seatId,
-          errorMessage: err?.message || "Reservation could not be completed on BOT Chain.",
+          errorMessage: errMsg,
           blockNumber: null,
         });
       }
@@ -283,7 +267,6 @@ export function useBOTSeat() {
       const signer = await getSigner();
       if (!signer) throw new Error("Wallet not available");
 
-      const displayPrice = "Free";
       const totalSeats = eventData.totalSeats && eventData.totalSeats > 0 ? eventData.totalSeats : 100;
 
       const metadataURI = JSON.stringify({
@@ -294,39 +277,20 @@ export function useBOTSeat() {
         colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
       });
 
-      let newId = Date.now();
-
-      const newEvent: BOTEvent = {
-        id: newId,
+      const { eventId } = await blockchainService.createEvent(signer, {
         name: eventData.name,
         description: eventData.description,
         venue: eventData.venue,
         dateTimestamp: eventData.dateTimestamp,
         totalSeats,
-        reservedCount: 0,
-        organizer: address,
         metadataURI,
-        isActive: true,
-        image: eventData.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
-        category: eventData.category || "General Event",
-        timeString: eventData.timeString || "TBA",
-        price: displayPrice,
-        rows: eventData.rows || 5,
-        colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
-      };
-
-      // Save locally
-      if (typeof window !== "undefined") {
-        const localKey = "botseat_local_events";
-        const existingStr = localStorage.getItem(localKey);
-        const list: BOTEvent[] = existingStr ? JSON.parse(existingStr) : [];
-        localStorage.setItem(localKey, JSON.stringify([newEvent, ...list]));
-      }
+      });
 
       await loadEvents();
-      return newId;
-    } catch (err) {
+      return eventId;
+    } catch (err: any) {
       console.error("Create event failed:", err);
+      alert(err?.message || "Failed to create event on BOT Chain.");
       return null;
     }
   };

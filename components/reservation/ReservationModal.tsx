@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { 
   X, 
@@ -10,12 +10,15 @@ import {
   ExternalLink, 
   Ticket, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { BOTEvent } from "@/types";
 import { ReservationTransactionState } from "@/lib/hooks/useBOTSeat";
 import { formatAddress, getExplorerTxUrl } from "@/lib/config/botchain";
 import { generateReservationCode } from "@/lib/utils";
+import { useWallet } from "@/lib/hooks/useWallet";
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -38,6 +41,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   onViewTicket,
   onReset,
 }) => {
+  const { isCorrectNetwork, isDemoWallet, switchNetwork, networkName, chainId } = useWallet();
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+
   useEffect(() => {
     if (txState.step === "success") {
       // Fire subtle celebratory confetti
@@ -55,6 +61,15 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const handleClose = () => {
     onReset();
     onClose();
+  };
+
+  const handleSwitchNetwork = async () => {
+    setIsSwitchingNetwork(true);
+    try {
+      await switchNetwork("mainnet");
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
   };
 
   return (
@@ -108,20 +123,65 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
               {/* Informative Gas & Chain Box */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 font-medium">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 font-medium">
                   <span className="text-slate-600">Reservation:</span>
                   <span className="font-mono font-bold text-emerald-600">
-                    Free
+                    FREE (0 BOT)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 font-medium">
+                  <span className="text-slate-600">Network fee:</span>
+                  <span className="font-mono text-slate-700">
+                    Estimated BOT gas (~0.005 BOT)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60 font-semibold">
+                  <span className="text-slate-900">Total:</span>
+                  <span className="font-mono text-slate-900">
+                    Network gas only (0 BOT)
                   </span>
                 </div>
 
-                <div className="flex items-start gap-2.5 text-slate-700">
+                <div className="flex items-start gap-2.5 text-slate-600 pt-1">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <span>
-                    Reservation is free. You only pay standard <strong>BOT Chain</strong> network gas.
+                    Reservation is completely free. You only pay the standard <strong>BOT Chain</strong> network gas fee.
                   </span>
                 </div>
               </div>
+
+              {/* Network warning if on wrong chain (e.g., Ethereum Mainnet instead of BOT Chain Mainnet) */}
+              {!isCorrectNetwork && !isDemoWallet && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                  <div className="flex items-start gap-2 text-amber-900 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Wrong Network Connected</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        Your wallet is on <strong>{networkName}</strong>. SeatBOT is deployed on <strong>BOT Chain Mainnet (Chain ID 677)</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSwitchNetwork}
+                    disabled={isSwitchingNetwork}
+                    className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  >
+                    {isSwitchingNetwork ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Switching in Wallet...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Switch to BOT Chain Mainnet (677)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-2">
@@ -298,6 +358,28 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   {txState.errorMessage || "Reservation could not be completed on BOT Chain."}
                 </p>
               </div>
+
+              {!isCorrectNetwork && !isDemoWallet && (
+                <button
+                  type="button"
+                  onClick={handleSwitchNetwork}
+                  disabled={isSwitchingNetwork}
+                  className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  {isSwitchingNetwork ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Switching Network in Wallet...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Switch to BOT Chain Mainnet (Chain ID 677)</span>
+                    </>
+                  )}
+                </button>
+              )}
+
               <div className="flex items-center gap-3 w-full pt-2">
                 <button
                   onClick={handleClose}

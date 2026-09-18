@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { BOT_CHAIN_CONFIG, DEFAULT_NETWORK, getNetworkConfig } from "@/lib/config/botchain";
-import { NetworkType } from "@/types";
+import { NetworkConfig, NetworkType } from "@/types";
 
 interface WalletContextType {
   address: string | null;
@@ -12,6 +12,8 @@ interface WalletContextType {
   isConnected: boolean;
   isCorrectNetwork: boolean;
   networkType: NetworkType;
+  networkName: string;
+  targetConfig: NetworkConfig;
   botBalance: string;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
@@ -33,7 +35,30 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const targetConfig = getNetworkConfig(networkType);
   const isConnected = !!address;
-  const isCorrectNetwork = isDemoWallet || chainId === targetConfig.chainId;
+  const isCorrectNetwork = isDemoWallet || (chainId !== null && Number(chainId) === targetConfig.chainId);
+
+  const parseChainId = (rawChainId: any): number | null => {
+    if (!rawChainId) return null;
+    if (typeof rawChainId === "number") return rawChainId;
+    if (typeof rawChainId === "string") {
+      return rawChainId.startsWith("0x") ? parseInt(rawChainId, 16) : parseInt(rawChainId, 10);
+    }
+    return Number(rawChainId) || null;
+  };
+
+  const getNetworkName = (id: number | null): string => {
+    if (!id) return "Unknown Network";
+    if (id === 677) return "BOT Chain Mainnet";
+    if (id === 968) return "BOT Chain Testnet";
+    if (id === 1) return "Ethereum Mainnet";
+    if (id === 11155111) return "Sepolia Testnet";
+    if (id === 137) return "Polygon Mainnet";
+    if (id === 56) return "BNB Chain";
+    if (id === 42161) return "Arbitrum One";
+    if (id === 10) return "Optimism";
+    if (id === 8453) return "Base";
+    return `Chain ID ${id}`;
+  };
 
   // Refresh balance
   const updateBalance = useCallback(async (accountAddress: string, provider: ethers.Provider) => {
@@ -45,41 +70,64 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  // Listen for account/chain changes only when already connected
+  // Listen for account/chain changes and restore initial connection on mount
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
       const eth = (window as any).ethereum;
 
-      const handleAccountsChanged = (accounts: string[]) => {
+      const initWallet = async () => {
+        try {
+          const accounts = await eth.request({ method: "eth_accounts" });
+          if (accounts && accounts.length > 0) {
+            setAddress(accounts[0]);
+            const rawChain = await eth.request({ method: "eth_chainId" });
+            const parsedChain = parseChainId(rawChain);
+            setChainId(parsedChain);
+            const provider = new ethers.BrowserProvider(eth);
+            await updateBalance(accounts[0], provider);
+          }
+        } catch (err) {
+          console.error("Initial wallet sync failed:", err);
+        }
+      };
+
+      initWallet();
+
+      const handleAccountsChanged = async (accounts: string[]) => {
         if (accounts.length === 0) {
           setAddress(null);
+          setChainId(null);
           setBotBalance("0.00");
           setIsDemoWallet(false);
         } else {
           setAddress(accounts[0]);
+          try {
+            const rawChain = await eth.request({ method: "eth_chainId" });
+            setChainId(parseChainId(rawChain));
+          } catch {}
           const provider = new ethers.BrowserProvider(eth);
           updateBalance(accounts[0], provider);
         }
       };
 
       const handleChainChanged = async (hexChain: string) => {
-  const newChainId = parseInt(hexChain, 16);
-  setChainId(newChainId);
+        const newChainId = parseChainId(hexChain);
+        setChainId(newChainId);
 
-  try {
-    const accounts = await eth.request({ method: "eth_accounts" });
+        try {
+          const accounts = await eth.request({ method: "eth_accounts" });
+          if (accounts && accounts.length > 0) {
+            const provider = new ethers.BrowserProvider(eth);
+            await updateBalance(accounts[0], provider);
+          } else {
+            setBotBalance("0.00");
+          }
+        } catch (error) {
+          console.error("Failed to refresh balance after network change:", error);
+          setBotBalance("0.00");
+        }
+      };
 
-    if (accounts.length > 0) {
-      const provider = new ethers.BrowserProvider(eth);
-      await updateBalance(accounts[0], provider);
-    } else {
-      setBotBalance("0.00");
-    }
-  } catch (error) {
-    console.error("Failed to refresh balance after network change:", error);
-    setBotBalance("0.00");
-  }
-};
       eth.on("accountsChanged", handleAccountsChanged);
       eth.on("chainChanged", handleChainChanged);
 
@@ -100,8 +148,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const accounts = await eth.request({ method: "eth_requestAccounts" });
         if (accounts.length > 0) {
           setAddress(accounts[0]);
-          const hexChain = await eth.request({ method: "eth_chainId" });
-          setChainId(parseInt(hexChain, 16));
+          const rawChain = await eth.request({ method: "eth_chainId" });
+          setChainId(parseChainId(rawChain));
           setIsDemoWallet(false);
 
           const provider = new ethers.BrowserProvider(eth);
@@ -164,7 +212,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return true;
       } catch (switchError: any) {
         // If the chain hasn't been added to MetaMask (error 4902)
-        if (switchError.code === 4902 || switchError?.data?.originalError?.code === 4902) {
+        if (
+          switchError?.code === 4902 ||
+          switchError?.data?.originalError?.code === 4902 ||
+          switchError?.message?.includes("4902") ||
+          switchError?.message?.includes("Unrecognized chain ID")
+        ) {
           try {
             await eth.request({
               method: "wallet_addEthereumChain",
@@ -173,7 +226,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   chainId: config.hexChainId,
                   chainName: config.name,
                   nativeCurrency: {
-                    name: "BOT Token",
+                    name: config.currencySymbol,
                     symbol: config.currencySymbol,
                     decimals: 18,
                   },
@@ -224,6 +277,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isConnected,
         isCorrectNetwork,
         networkType,
+        networkName: isDemoWallet ? "BOT Chain Mainnet (Demo)" : getNetworkName(chainId),
+        targetConfig,
         botBalance,
         connectWallet,
         disconnectWallet,
