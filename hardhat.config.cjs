@@ -37,6 +37,11 @@ module.exports = {
       chainId: 677,
       accounts: accounts,
     },
+    botchainTestnet: {
+      url: process.env.NEXT_PUBLIC_BOT_TESTNET_RPC || "https://rpc.bohr.life",
+      chainId: 968,
+      accounts: accounts,
+    },
   },
   paths: {
     sources: "./contracts",

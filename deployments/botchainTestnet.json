@@ -1,0 +1,9 @@
+{
+  "network": "botchainTestnet",
+  "chainId": 968,
+  "rpcUrl": "https://rpc.bohr.life",
+  "contractAddress": "0x52208ddadD40b8A3e1C12B064c43a043dfFFd25D",
+  "deployer": "0xD21984aFbcDC85Be0bd97eFAeE82C7d587dD1112",
+  "txHash": "0x57cd676dab33a2e1ffc61ce5a64c0a7dbf6f693d78c95412f2787d63c6b5f2db",
+  "deployedAt": "2026-09-18T18:15:12.981Z"
+}

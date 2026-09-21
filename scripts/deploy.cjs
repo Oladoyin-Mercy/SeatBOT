@@ -10,18 +10,34 @@ async function main() {
   // ==============================================================
   // 1. HARD STOP ON WRONG NETWORK (Name & Config Chain ID)
   // ==============================================================
+  const SUPPORTED_NETWORKS = {
+    botchainMainnet: {
+      chainId: 677,
+      name: "BOT Chain Mainnet",
+      explorer: "https://scan.botchain.ai",
+    },
+    botchainTestnet: {
+      chainId: 968,
+      name: "BOT Chain Testnet",
+      explorer: "https://scan.bohr.life",
+    },
+  };
+
   const currentNetwork = network.name;
-  if (currentNetwork !== "botchainMainnet") {
+  const targetConfig = SUPPORTED_NETWORKS[currentNetwork];
+
+  if (!targetConfig) {
     console.error(`\n❌ HARD STOP: Target network is '${currentNetwork}'.`);
-    console.error(`Deployment aborted. Network MUST strictly be 'botchainMainnet'.`);
-    console.error(`Execution command must be: npx hardhat run scripts/deploy.cjs --network botchainMainnet`);
+    console.error(`Supported networks are: ${Object.keys(SUPPORTED_NETWORKS).join(", ")}`);
+    console.error(`Execution command must be: npx hardhat run scripts/deploy.cjs --network <networkName>`);
     process.exit(1);
   }
 
+  const expectedChainId = targetConfig.chainId;
   const configChainId = Number(network.config.chainId);
-  if (configChainId !== 677) {
-    console.error(`\n❌ HARD STOP: Hardhat config chainId is ${configChainId}, expected exactly 677.`);
-    console.error(`Deployment aborted. Chain ID must strictly be 677 for BOT Chain Mainnet.`);
+  if (configChainId !== expectedChainId) {
+    console.error(`\n❌ HARD STOP: Hardhat config chainId is ${configChainId}, expected exactly ${expectedChainId}.`);
+    console.error(`Deployment aborted. Chain ID must strictly be ${expectedChainId} for ${targetConfig.name}.`);
     process.exit(1);
   }
 
@@ -44,13 +60,13 @@ async function main() {
   console.log(`- Live RPC Chain ID      : ${liveRpcChainId}`);
   console.log(`- RPC URL                : ${network.config.url}`);
 
-  if (liveRpcChainId !== 677) {
-    console.error(`\n❌ HARD STOP: Connected RPC returned Chain ID ${liveRpcChainId}, expected exactly 677.`);
-    console.error(`Deployment aborted. The RPC node is NOT BOT Chain Mainnet.`);
+  if (liveRpcChainId !== expectedChainId) {
+    console.error(`\n❌ HARD STOP: Connected RPC returned Chain ID ${liveRpcChainId}, expected exactly ${expectedChainId}.`);
+    console.error(`Deployment aborted. The RPC node is NOT ${targetConfig.name}.`);
     process.exit(1);
   }
 
-  console.log("\n✅ Network verification PASSED: Confirmed BOT Chain Mainnet (Chain ID 677).\n");
+  console.log(`\n✅ Network verification PASSED: Confirmed ${targetConfig.name} (Chain ID ${expectedChainId}).\n`);
 
   // ==============================================================
   // 3. DEPLOYER WALLET & BALANCE VALIDATION
@@ -71,7 +87,7 @@ async function main() {
   console.log(`- Deployer Balance       : ${balanceBOT} BOT`);
 
   if (balanceWei === 0n) {
-    console.error(`\n❌ HARD STOP: Deployer wallet ${deployerAddress} has 0 BOT balance on Mainnet.`);
+    console.error(`\n❌ HARD STOP: Deployer wallet ${deployerAddress} has 0 BOT balance on ${targetConfig.name}.`);
     console.error("Please fund your wallet with BOT tokens to cover deployment gas fees.");
     process.exit(1);
   }
@@ -79,7 +95,7 @@ async function main() {
   // ==============================================================
   // 4. SMART CONTRACT DEPLOYMENT
   // ==============================================================
-  console.log("\nDeploying BOTSeat smart contract to BOT Chain Mainnet...");
+  console.log(`\nDeploying BOTSeat smart contract to ${targetConfig.name}...`);
   const BOTSeatFactory = await ethers.getContractFactory("BOTSeat");
   
   const botSeat = await BOTSeatFactory.deploy();
@@ -90,11 +106,11 @@ async function main() {
   const deployTx = botSeat.deploymentTransaction();
 
   console.log("\n=================================================");
-  console.log("🎉 BOTSeat CONTRACT DEPLOYED SUCCESSFULLY TO MAINNET!");
+  console.log(`🎉 BOTSeat CONTRACT DEPLOYED SUCCESSFULLY TO ${targetConfig.name.toUpperCase()}!`);
   console.log("=================================================");
   console.log(`Contract Address : ${contractAddress}`);
   console.log(`Transaction Hash : ${deployTx ? deployTx.hash : "N/A"}`);
-  console.log(`Block Explorer   : https://scan.botchain.ai/address/${contractAddress}`);
+  console.log(`Block Explorer   : ${targetConfig.explorer}/address/${contractAddress}`);
   console.log("=================================================\n");
 
   // ==============================================================
@@ -117,12 +133,7 @@ async function main() {
 
   const deploymentFilePath = path.join(deploymentsDir, `${currentNetwork}.json`);
   fs.writeFileSync(deploymentFilePath, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`📁 Mainnet deployment record saved to: ${path.relative(process.cwd(), deploymentFilePath)}`);
-
-  console.log("\nNext Steps:");
-  console.log(`1. Update NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT in .env.local:`);
-  console.log(`   NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT="${contractAddress}"`);
-  console.log(`2. Verify the contract address in lib/config/botchain.ts`);
+  console.log(`📁 Deployment record saved to: ${path.relative(process.cwd(), deploymentFilePath)}`);
 }
 
 main()
