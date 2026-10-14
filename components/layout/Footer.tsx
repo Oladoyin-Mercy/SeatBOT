@@ -62,12 +62,6 @@ export const Footer: React.FC = () => {
               Powered by BOT Chain
             </h4>
             <div className="space-y-3">
-              {/* BOT Chain Mainnet badge */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-xs font-semibold text-emerald-800">BOT Chain Mainnet</span>
-                <span className="text-[10px] font-mono text-emerald-600 ml-1">Chain ID 677</span>
-              </div>
 
               <ul className="space-y-2 text-sm text-slate-600">
                 <li>
@@ -101,17 +95,6 @@ export const Footer: React.FC = () => {
         {/* Bottom divider */}
         <div className="border-t border-slate-100 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} BOTSeat. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-slate-500">
-            <span>Deployed on</span>
-            <a
-              href="https://botchain.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-slate-700 hover:text-blue-600 transition-colors"
-            >
-              BOT Chain Mainnet
-            </a>
-          </div>
         </div>
       </div>
     </footer>

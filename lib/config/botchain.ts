@@ -17,7 +17,7 @@ export const BOT_CHAIN_CONFIG: Record<NetworkType, NetworkConfig> = {
     rpcUrl: process.env.NEXT_PUBLIC_BOT_TESTNET_RPC || "https://rpc.bohr.life",
     currencySymbol: "BOT",
     explorerUrl: "https://scan.bohr.life",
-    contractAddress: process.env.NEXT_PUBLIC_BOTSEAT_TESTNET_CONTRACT || "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+    contractAddress: process.env.NEXT_PUBLIC_BOTSEAT_TESTNET_CONTRACT || "0x52208ddadD40b8A3e1C12B064c43a043dfFFd25D",
   },
 };
 
