@@ -158,7 +158,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     <div>
                       <p className="font-bold">Wrong Network Connected</p>
                       <p className="text-[11px] text-amber-700 mt-0.5">
-                        Your wallet is on <strong>{networkName}</strong>. SeatBOT is deployed on <strong>{targetConfig.name} (Chain ID {targetConfig.chainId})</strong>.
+                        Please switch your wallet to BOT Chain Mainnet (Chain ID 677) or Testnet (Chain ID 968).
                       </p>
                     </div>
                   </div>

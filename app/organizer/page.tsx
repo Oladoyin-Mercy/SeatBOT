@@ -13,7 +13,8 @@ import {
   UserCheck, 
   X,
   Coins,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 import { useBOTSeat } from "@/lib/hooks/useBOTSeat";
 import { useWallet } from "@/lib/hooks/useWallet";
@@ -23,13 +24,28 @@ import { blockchainService } from "@/lib/services/blockchain";
 import { BOTEvent, Reservation } from "@/types";
 
 export default function OrganizerDashboard() {
-  const { events } = useBOTSeat();
+  const { events, loadEvents } = useBOTSeat();
   const { isConnected, address, connectWallet } = useWallet();
 
   const [selectedEventForAttendees, setSelectedEventForAttendees] = useState<BOTEvent | null>(null);
   const [attendeesList, setAttendeesList] = useState<Reservation[]>([]);
   const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
   const [attendeeSearchQuery, setAttendeeSearchQuery] = useState("");
+
+  const handleDeleteLocalEvent = (eventId: number) => {
+    if (confirm("Are you sure you want to remove this local event?")) {
+      if (typeof window !== "undefined") {
+        const localKey = "botseat_local_events";
+        const existingStr = localStorage.getItem(localKey);
+        if (existingStr) {
+          const list: BOTEvent[] = JSON.parse(existingStr);
+          const filtered = list.filter((e) => e.id !== eventId);
+          localStorage.setItem(localKey, JSON.stringify(filtered));
+        }
+      }
+      loadEvents();
+    }
+  };
 
   const totalSeatsAll = events.reduce((acc, curr) => acc + curr.totalSeats, 0);
   const totalReservedAll = events.reduce((acc, curr) => acc + curr.reservedCount, 0);
@@ -232,6 +248,18 @@ export default function OrganizerDashboard() {
                     >
                       <span>Verify Ticket</span>
                     </Link>
+
+                    {evt.id > 1000000000 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLocalEvent(evt.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg text-xs font-medium transition-colors"
+                        title="Delete Local Event"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </div>
 
                 </div>

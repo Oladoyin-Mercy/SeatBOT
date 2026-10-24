@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@/lib/hooks/useWallet";
 import { formatAddress } from "@/lib/config/botchain";
 import { Logo } from "@/components/ui/Logo";
-import { NetworkType } from "@/types";
 import { 
   Ticket, 
   Search, 
@@ -17,9 +16,7 @@ import {
   ChevronDown, 
   Copy, 
   LogOut, 
-  Check, 
-  ShieldCheck,
-  Circle
+  Check 
 } from "lucide-react";
 
 export const Navbar: React.FC = () => {
@@ -30,35 +27,17 @@ export const Navbar: React.FC = () => {
     isConnecting, 
     connectWallet, 
     disconnectWallet, 
-    botBalance,
-    isDemoWallet,
-    isCorrectNetwork,
-    switchNetwork,
-    networkName,
-    networkType,
-    chainId,
-    targetConfig,
   } = useWallet();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
 
   const handleCopy = () => {
     if (address) {
       navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleSwitchNetwork = async (target?: NetworkType) => {
-    setIsSwitching(true);
-    try {
-      await switchNetwork(target || networkType);
-    } finally {
-      setIsSwitching(false);
     }
   };
 
@@ -105,20 +84,6 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action: Wallet Button */}
           <div className="hidden md:flex items-center gap-3">
-
-            {/* Network switch prompt when on wrong network */}
-            {isConnected && !isCorrectNetwork && (
-              <button
-                onClick={() => handleSwitchNetwork()}
-                disabled={isSwitching}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold transition-all shadow-xs active:scale-95"
-                title="Your wallet is on a different network. Click to switch to BOT Chain."
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                <span>{isSwitching ? "Switching..." : "Switch to BOT Chain"}</span>
-              </button>
-            )}
-
             {/* Wallet Button */}
             {!isConnected ? (
               <button
@@ -139,93 +104,28 @@ export const Navbar: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setIsWalletDropdownOpen(!isWalletDropdownOpen)}
-                  className="flex items-center gap-2.5 px-3 py-1.5 text-sm font-medium text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-colors"
+                  className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-xs transition-colors"
                 >
-                  <div className="flex flex-col items-start text-left">
-                    <span className="font-mono text-xs font-semibold text-slate-900">
-                      {formatAddress(address)}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      {botBalance} BOT
-                    </span>
-                  </div>
+                  <span className="font-mono text-xs font-semibold text-slate-900">
+                    {formatAddress(address)}
+                  </span>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
 
                 {/* Dropdown menu */}
                 {isWalletDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-modal border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
-                    <div className="px-3.5 py-2 border-b border-slate-100">
-                      <p className="text-xs text-slate-500">Connected Wallet</p>
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-modal border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-3.5 py-2.5 border-b border-slate-100">
+                      <p className="text-[11px] font-medium text-slate-400">Connected Wallet</p>
                       <p className="font-mono text-xs font-semibold text-slate-900 break-all mt-0.5">
                         {address}
                       </p>
-                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">Network:</span>
-                        <span className={`font-semibold ${isCorrectNetwork ? "text-emerald-600" : "text-amber-600"}`}>
-                          {networkName}
-                        </span>
-                      </div>
-                      {isCorrectNetwork && !isDemoWallet && (
-                        <div className="mt-1 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500">Chain ID:</span>
-                          <span className="font-mono font-semibold text-slate-600">{chainId || targetConfig.chainId}</span>
-                        </div>
-                      )}
-                      {isDemoWallet && (
-                        <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
-                          Demo Sandbox Mode
-                        </span>
-                      )}
                     </div>
-
-                    {/* Network Switcher Toggle */}
-                    <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50">
-                      <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">Network</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleSwitchNetwork("testnet")}
-                          disabled={isSwitching}
-                          className={`py-1 px-2 rounded-md text-[11px] font-semibold transition-all border ${
-                            networkType === "testnet"
-                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          Testnet (968)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSwitchNetwork("mainnet")}
-                          disabled={isSwitching}
-                          className={`py-1 px-2 rounded-md text-[11px] font-semibold transition-all border ${
-                            networkType === "mainnet"
-                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          Mainnet (677)
-                        </button>
-                      </div>
-                    </div>
-
-                    {!isCorrectNetwork && !isDemoWallet && (
-                      <div className="px-3 py-1.5 border-b border-slate-100">
-                        <button
-                          onClick={() => handleSwitchNetwork()}
-                          disabled={isSwitching}
-                          className="w-full py-1.5 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          Switch to BOT Chain
-                        </button>
-                      </div>
-                    )}
 
                     <div className="py-1">
                       <button
                         onClick={handleCopy}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left font-medium"
                       >
                         {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
                         <span>{copied ? "Copied address" : "Copy Address"}</span>
@@ -294,7 +194,28 @@ export const Navbar: React.FC = () => {
               </Link>
             );
           })}
-          
+
+          {isConnected && (
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between px-2">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 font-medium"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                <span>{copied ? "Copied" : "Copy Address"}</span>
+              </button>
+              <button
+                onClick={() => {
+                  disconnectWallet();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                <span>Disconnect</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

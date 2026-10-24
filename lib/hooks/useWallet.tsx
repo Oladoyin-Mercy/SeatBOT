@@ -187,15 +187,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           await updateBalance(accounts[0], provider);
         }
       } else {
-        // Provide demo wallet for testing without extension
-        enableDemoWallet();
+        console.warn("No wallet extension detected. Please install an EVM-compatible wallet such as MetaMask.");
       }
     } catch (err: any) {
       console.error("Wallet connection failed:", err);
-      if (err?.code !== 4001) {
-        // User didn't just reject; allow demo wallet fallback
-        enableDemoWallet();
-      }
+      // Don't auto-activate demo wallet — let the user choose it explicitly
     } finally {
       setIsConnecting(false);
     }
@@ -310,7 +306,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isConnected,
         isCorrectNetwork,
         networkType,
-        networkName: isDemoWallet ? "BOT Chain Mainnet (Demo)" : getNetworkName(chainId),
+        networkName: isDemoWallet ? `${getNetworkConfig(networkType).name} (Demo)` : getNetworkName(chainId),
         targetConfig,
         botBalance,
         connectWallet,
