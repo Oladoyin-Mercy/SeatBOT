@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import { BOT_CHAIN_CONFIG, DEFAULT_NETWORK, getNetworkConfig } from "@/lib/config/botchain";
+import { blockchainService } from "@/lib/services/blockchain";
 import { NetworkConfig, NetworkType } from "@/types";
 
 interface WalletContextType {
@@ -35,7 +36,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const targetConfig = getNetworkConfig(networkType);
   const isConnected = !!address;
-  const isCorrectNetwork = isDemoWallet || (chainId !== null && Number(chainId) === targetConfig.chainId);
+  const isCorrectNetwork = isDemoWallet || (chainId !== null && (Number(chainId) === 677 || Number(chainId) === 968));
 
   const parseChainId = (rawChainId: any): number | null => {
     if (!rawChainId) return null;
@@ -70,6 +71,21 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
+  // Synchronize network state with connected wallet chain and blockchainService
+  useEffect(() => {
+    if (chainId === 968) {
+      setNetworkType("testnet");
+      blockchainService.setNetwork("testnet");
+    } else if (chainId === 677) {
+      setNetworkType("mainnet");
+      blockchainService.setNetwork("mainnet");
+    }
+  }, [chainId]);
+
+  useEffect(() => {
+    blockchainService.setNetwork(networkType);
+  }, [networkType]);
+
   // Listen for account/chain changes and restore initial connection on mount
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
@@ -83,6 +99,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const rawChain = await eth.request({ method: "eth_chainId" });
             const parsedChain = parseChainId(rawChain);
             setChainId(parsedChain);
+            if (parsedChain === 968) setNetworkType("testnet");
+            else if (parsedChain === 677) setNetworkType("mainnet");
             const provider = new ethers.BrowserProvider(eth);
             await updateBalance(accounts[0], provider);
           }
@@ -103,7 +121,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setAddress(accounts[0]);
           try {
             const rawChain = await eth.request({ method: "eth_chainId" });
-            setChainId(parseChainId(rawChain));
+            const parsedChain = parseChainId(rawChain);
+            setChainId(parsedChain);
+            if (parsedChain === 968) setNetworkType("testnet");
+            else if (parsedChain === 677) setNetworkType("mainnet");
           } catch {}
           const provider = new ethers.BrowserProvider(eth);
           updateBalance(accounts[0], provider);
@@ -113,6 +134,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const handleChainChanged = async (hexChain: string) => {
         const newChainId = parseChainId(hexChain);
         setChainId(newChainId);
+        if (newChainId === 968) setNetworkType("testnet");
+        else if (newChainId === 677) setNetworkType("mainnet");
 
         try {
           const accounts = await eth.request({ method: "eth_accounts" });
@@ -149,7 +172,15 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (accounts.length > 0) {
           setAddress(accounts[0]);
           const rawChain = await eth.request({ method: "eth_chainId" });
-          setChainId(parseChainId(rawChain));
+          const parsed = parseChainId(rawChain);
+          setChainId(parsed);
+          if (parsed === 968) {
+            setNetworkType("testnet");
+            blockchainService.setNetwork("testnet");
+          } else if (parsed === 677) {
+            setNetworkType("mainnet");
+            blockchainService.setNetwork("mainnet");
+          }
           setIsDemoWallet(false);
 
           const provider = new ethers.BrowserProvider(eth);
@@ -188,9 +219,11 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.removeItem("botseat_demo_wallet");
   };
 
-  const switchNetwork = async (target: NetworkType = networkType): Promise<boolean> => {
-    const config = getNetworkConfig(target);
-    setNetworkType(target);
+  const switchNetwork = async (target?: NetworkType): Promise<boolean> => {
+    const resolvedTarget: NetworkType = target || (chainId === 968 ? "testnet" : networkType);
+    const config = getNetworkConfig(resolvedTarget);
+    setNetworkType(resolvedTarget);
+    blockchainService.setNetwork(resolvedTarget);
 
     if (isDemoWallet) {
       setChainId(config.chainId);

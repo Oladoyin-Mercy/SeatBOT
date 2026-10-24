@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { BOTSEAT_ABI } from "@/lib/contracts/BOTSeatABI";
 import { getNetworkConfig, DEFAULT_NETWORK } from "@/lib/config/botchain";
-import { BOTEvent, Reservation, VerificationResult } from "@/types";
+import { BOTEvent, Reservation, VerificationResult, NetworkType } from "@/types";
 import { parseEventMetadata } from "@/lib/utils";
 
 // Verified initial events for BOTSeat demo and platform launch
@@ -109,7 +109,7 @@ export function parseBlockchainError(
     error?.code === "INSUFFICIENT_FUNDS" ||
     error?.message?.includes("insufficient funds")
   ) {
-    return "Insufficient BOT balance to pay for network gas. Please ensure your wallet has BOT on BOT Chain Mainnet.";
+    return "Insufficient BOT balance to pay for network gas. Please ensure your wallet has BOT on the connected BOT Chain network.";
   }
 
   // 3. Try parsing custom Solidity error via Interface
@@ -125,7 +125,7 @@ export function parseBlockchainError(
       if (parsed) {
         switch (parsed.name) {
           case "EventNotFound":
-            return `Event #${eventId || ""} not found on BOT Chain smart contract.`;
+            return `Event #${eventId || ""} was not found on this BOT Chain smart contract. If this is a preview event, please run "npm run seed:mainnet" (or "npm run seed:testnet") to deploy it on-chain, or create a new live event via Organizer Studio.`;
           case "EventInactive":
             return "This event is currently inactive and not accepting reservations.";
           case "SeatAlreadyReserved":
@@ -153,7 +153,7 @@ export function parseBlockchainError(
     return `Seat ${seatId || ""} is already reserved. Please choose another seat.`;
   }
   if (msg.includes("EventNotFound")) {
-    return `Event #${eventId || ""} not found on BOT Chain smart contract.`;
+    return `Event #${eventId || ""} was not found on this BOT Chain smart contract. Please seed the initial events on-chain or create a new live event via the Organizer Studio.`;
   }
   if (msg.includes("EventInactive")) {
     return "This event is currently inactive and not accepting reservations.";
@@ -178,27 +178,44 @@ export function parseBlockchainError(
 }
 
 export class BlockchainService {
-  private network = DEFAULT_NETWORK;
+  private network: NetworkType = DEFAULT_NETWORK;
 
-  getProvider(): ethers.JsonRpcProvider {
-    const config = getNetworkConfig(this.network);
+  setNetwork(net: NetworkType) {
+    this.network = net;
+  }
+
+  getNetwork(): NetworkType {
+    return this.network;
+  }
+
+  getProvider(network: NetworkType = this.network): ethers.JsonRpcProvider {
+    const config = getNetworkConfig(network);
     return new ethers.JsonRpcProvider(config.rpcUrl);
   }
 
-  getReadOnlyContract(): ethers.Contract {
-    const config = getNetworkConfig(this.network);
-    const provider = this.getProvider();
+  getReadOnlyContract(network: NetworkType = this.network): ethers.Contract {
+    const config = getNetworkConfig(network);
+    const provider = this.getProvider(network);
     const contractAddr = ethers.isAddress(config.contractAddress)
       ? ethers.getAddress(config.contractAddress.toLowerCase())
-      : "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b";
+      : config.contractAddress;
     return new ethers.Contract(contractAddr, BOTSEAT_ABI, provider);
   }
 
-  async getSignerContract(signer: ethers.Signer): Promise<ethers.Contract> {
-    const config = getNetworkConfig(this.network);
+  async getSignerContract(signer: ethers.Signer, network?: NetworkType): Promise<ethers.Contract> {
+    let resolvedNet = network || this.network;
+    if (!network && signer.provider) {
+      try {
+        const net = await signer.provider.getNetwork();
+        const cid = Number(net.chainId);
+        if (cid === 968) resolvedNet = "testnet";
+        else if (cid === 677) resolvedNet = "mainnet";
+      } catch {}
+    }
+    const config = getNetworkConfig(resolvedNet);
     const contractAddr = ethers.isAddress(config.contractAddress)
       ? ethers.getAddress(config.contractAddress.toLowerCase())
-      : "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b";
+      : config.contractAddress;
     return new ethers.Contract(contractAddr, BOTSEAT_ABI, signer);
   }
 
@@ -305,19 +322,38 @@ export class BlockchainService {
     eventId: number,
     seatId: string
   ): Promise<{ txHash: string; reservationId: number }> {
-    const config = getNetworkConfig(this.network);
-    const contractAddr = ethers.isAddress(config.contractAddress)
-      ? ethers.getAddress(config.contractAddress.toLowerCase())
-      : "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b";
+    let targetNetwork = this.network;
 
-    // 1. Verify connected signer network
+    // Check demo / sandbox mode first
+    try {
+      const userAddr = await signer.getAddress();
+      const isDemo =
+        userAddr?.toLowerCase() === "0x742d35cc6634c0532925a3b844bc454e4438f44e" ||
+        (typeof window !== "undefined" &&
+          localStorage.getItem("botseat_demo_wallet")?.toLowerCase() === userAddr?.toLowerCase());
+
+      if (isDemo) {
+        const mockTxHash = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+        const mockResId = Math.floor(1000 + Math.random() * 9000);
+        return {
+          txHash: mockTxHash,
+          reservationId: mockResId,
+        };
+      }
+    } catch {}
+
+    // 1. Verify connected signer network and resolve matching network
     if (signer.provider) {
       try {
         const net = await signer.provider.getNetwork();
         const connectedChainId = Number(net.chainId);
-        if (connectedChainId !== 677) {
+        if (connectedChainId === 968) {
+          targetNetwork = "testnet";
+        } else if (connectedChainId === 677) {
+          targetNetwork = "mainnet";
+        } else {
           throw new Error(
-            `Wallet is connected to Chain ID ${connectedChainId}. Please switch your wallet network to BOT Chain Mainnet (Chain ID 677).`
+            `Wallet is connected to Chain ID ${connectedChainId}. Please switch your wallet network to BOT Chain Testnet (Chain ID 968) or BOT Chain Mainnet (Chain ID 677).`
           );
         }
       } catch (netErr: any) {
@@ -327,17 +363,23 @@ export class BlockchainService {
       }
     }
 
+    const config = getNetworkConfig(targetNetwork);
+    const contractAddr = ethers.isAddress(config.contractAddress)
+      ? ethers.getAddress(config.contractAddress.toLowerCase())
+      : config.contractAddress;
+
     // 2. Safe development logging (NO secrets/keys)
     if (process.env.NODE_ENV === "development") {
-      console.log("[SeatBOT Mainnet Reservation Request]", {
+      console.log(`[SeatBOT ${targetNetwork.toUpperCase()} Reservation Request]`, {
+        network: targetNetwork,
         eventId,
         seatId,
         contractAddress: contractAddr,
-        targetChainId: 677,
+        targetChainId: config.chainId,
       });
     }
 
-    const contract = await this.getSignerContract(signer);
+    const contract = await this.getSignerContract(signer, targetNetwork);
 
     try {
       // 3. Normal ethers gas estimation with small 20% safety margin (no arbitrary huge hardcoding)
@@ -408,6 +450,24 @@ export class BlockchainService {
       metadataURI: string;
     }
   ): Promise<{ eventId: number; txHash: string }> {
+    // Check demo / sandbox mode first
+    try {
+      const userAddr = await signer.getAddress();
+      const isDemo =
+        userAddr?.toLowerCase() === "0x742d35cc6634c0532925a3b844bc454e4438f44e" ||
+        (typeof window !== "undefined" &&
+          localStorage.getItem("botseat_demo_wallet")?.toLowerCase() === userAddr?.toLowerCase());
+
+      if (isDemo) {
+        const mockTxHash = "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+        const mockEventId = Math.floor(100 + Math.random() * 900);
+        return {
+          txHash: mockTxHash,
+          eventId: mockEventId,
+        };
+      }
+    } catch {}
+
     const contract = await this.getSignerContract(signer);
 
     try {

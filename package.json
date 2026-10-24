@@ -10,7 +10,9 @@
     "start": "next start",
     "compile": "hardhat compile",
     "test:contracts": "hardhat test",
-    "deploy:mainnet": "hardhat run scripts/deploy.cjs --network botchainMainnet"
+    "deploy:mainnet": "hardhat run scripts/deploy.cjs --network botchainMainnet",
+    "seed:testnet": "node scripts/seedEvents.cjs --network botchainTestnet",
+    "seed:mainnet": "node scripts/seedEvents.cjs --network botchainMainnet"
   },
   "keywords": [],
   "author": "",

@@ -41,7 +41,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   onViewTicket,
   onReset,
 }) => {
-  const { isCorrectNetwork, isDemoWallet, switchNetwork, networkName, chainId } = useWallet();
+  const { isCorrectNetwork, isDemoWallet, switchNetwork, networkName, chainId, networkType, targetConfig } = useWallet();
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const handleSwitchNetwork = async () => {
     setIsSwitchingNetwork(true);
     try {
-      await switchNetwork("mainnet");
+      await switchNetwork(networkType);
     } finally {
       setIsSwitchingNetwork(false);
     }
@@ -158,7 +158,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     <div>
                       <p className="font-bold">Wrong Network Connected</p>
                       <p className="text-[11px] text-amber-700 mt-0.5">
-                        Your wallet is on <strong>{networkName}</strong>. SeatBOT is deployed on <strong>BOT Chain Mainnet (Chain ID 677)</strong>.
+                        Your wallet is on <strong>{networkName}</strong>. SeatBOT is deployed on <strong>{targetConfig.name} (Chain ID {targetConfig.chainId})</strong>.
                       </p>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     ) : (
                       <>
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Switch to BOT Chain Mainnet (677)</span>
+                        <span>Switch to {targetConfig.name} ({targetConfig.chainId})</span>
                       </>
                     )}
                   </button>
@@ -377,7 +377,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4" />
-                      <span>Switch to BOT Chain Mainnet (Chain ID 677)</span>
+                      <span>Switch to {targetConfig.name} ({targetConfig.chainId})</span>
                     </>
                   )}
                 </button>

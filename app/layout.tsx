@@ -25,6 +25,11 @@ export const metadata: Metadata = {
     description:
       "Decentralized event seat reservation on BOT Chain Mainnet. Zero double-booking. Verifiable on-chain tickets.",
   },
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

@@ -34,7 +34,9 @@ export function useBOTSeat() {
     isCorrectNetwork, 
     switchNetwork, 
     chainId, 
-    networkName 
+    networkName,
+    networkType,
+    targetConfig 
   } = useWallet();
   const [events, setEvents] = useState<BOTEvent[]>(INITIAL_FEATURED_EVENTS);
   const [isLoadingEvents, setIsLoadingEvents] = useState<boolean>(false);
@@ -92,8 +94,9 @@ export function useBOTSeat() {
   }, [address]);
 
   useEffect(() => {
+    blockchainService.setNetwork(networkType);
     loadEvents();
-  }, [loadEvents]);
+  }, [networkType, loadEvents]);
 
   useEffect(() => {
     loadUserReservations();
@@ -114,8 +117,8 @@ export function useBOTSeat() {
     }
 
     if (!isCorrectNetwork && !isDemoWallet) {
-      // Attempt auto network switch to BOT Chain Mainnet
-      const switched = await switchNetwork("mainnet");
+      // Attempt auto network switch to user's active network
+      const switched = await switchNetwork(networkType);
       if (!switched) {
         const currentLabel = chainId === 1 ? "Ethereum Mainnet" : networkName || (chainId ? `Chain ID ${chainId}` : "another network");
         setTxState({
@@ -123,7 +126,7 @@ export function useBOTSeat() {
           txHash: null,
           reservationId: null,
           seatId,
-          errorMessage: `SeatBOT smart contracts are deployed on BOT Chain Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch to BOT Chain Mainnet to reserve seats.`,
+          errorMessage: `SeatBOT smart contracts are deployed on BOT Chain Testnet (Chain ID 968) and BOT Chain Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch to a supported BOT Chain network to reserve seats.`,
           blockNumber: null,
         });
         return false;
@@ -264,11 +267,11 @@ export function useBOTSeat() {
 
     // Network safety: block submissions to wrong chain
     if (!isCorrectNetwork && !isDemoWallet) {
-      const switched = await switchNetwork("mainnet");
+      const switched = await switchNetwork(networkType);
       if (!switched) {
         const currentLabel = chainId === 1 ? "Ethereum Mainnet" : networkName || (chainId ? `Chain ID ${chainId}` : "another network");
         throw new Error(
-          `BOTSeat events must be created on BOT Chain Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch networks and try again.`
+          `BOTSeat events must be created on BOT Chain Testnet (Chain ID 968) or Mainnet (Chain ID 677). Your wallet is connected to ${currentLabel}. Please switch networks and try again.`
         );
       }
     }
@@ -294,6 +297,35 @@ export function useBOTSeat() {
       totalSeats,
       metadataURI,
     });
+
+    // Save event locally for immediate indexing and reservation availability
+    const newEvent: BOTEvent = {
+      id: eventId,
+      name: eventData.name,
+      description: eventData.description,
+      venue: eventData.venue,
+      dateTimestamp: eventData.dateTimestamp,
+      totalSeats,
+      reservedCount: 0,
+      organizer: address,
+      metadataURI,
+      isActive: true,
+      image: eventData.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
+      category: eventData.category || "General Event",
+      timeString: eventData.timeString || "TBA",
+      price: "Free",
+      priceInBot: "0",
+      rows: eventData.rows || 5,
+      colsPerRow: eventData.colsPerRow || Math.ceil(totalSeats / 5),
+    };
+
+    if (typeof window !== "undefined") {
+      const existingKey = "botseat_local_events";
+      const existingStr = localStorage.getItem(existingKey);
+      const list: BOTEvent[] = existingStr ? JSON.parse(existingStr) : [];
+      const updated = [newEvent, ...list.filter(e => e.id !== eventId)];
+      localStorage.setItem(existingKey, JSON.stringify(updated));
+    }
 
     await loadEvents();
     return { eventId, txHash };

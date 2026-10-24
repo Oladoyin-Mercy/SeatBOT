@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="sbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="seatGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Rounded Shield / Tile -->
+  <rect width="100" height="100" rx="24" fill="#0F172A" />
+  <rect x="1" y="1" width="98" height="98" rx="23" stroke="url(#sbGradient)" stroke-width="1.5" stroke-opacity="0.4" />
+
+  <!-- Outer Blockchain Verification Ring (Concentric tiered arena arc) -->
+  <path d="M22 42 A38 38 0 0 1 78 42" stroke="url(#sbGradient)" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 6" opacity="0.6" />
+  <path d="M28 32 A46 46 0 0 1 72 32" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 5" opacity="0.4" />
+
+  <!-- Node Dots along seating rows -->
+  <circle cx="28" cy="32" r="2.5" fill="#38BDF8" />
+  <circle cx="50" cy="27" r="2.5" fill="#60A5FA" />
+  <circle cx="72" cy="32" r="2.5" fill="#38BDF8" />
+
+  <!-- Futuristic Smart Seat Geometric Form -->
+  <!-- Backrest -->
+  <path d="M38 38 C38 34.6863 40.6863 32 44 32 H56 C59.3137 32 62 34.6863 62 38 V56 H38 V38 Z" fill="url(#sbGradient)" />
+  <path d="M42 36 H58" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+  <path d="M44 42 H56" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Seat Cushion / Base -->
+  <rect x="33" y="56" width="34" height="11" rx="4" fill="url(#seatGlow)" />
+
+  <!-- Smart Seat Armrests -->
+  <path d="M31 46 V59 C31 61.2 32.8 63 35 63" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" />
+  <path d="M69 46 V59 C69 61.2 67.2 63 65 63" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Seat Pedestal & Cyber Foundation Base -->
+  <path d="M47 67 H53 V75 H47 V67 Z" fill="#475569" />
+  <rect x="36" y="75" width="28" height="4" rx="2" fill="url(#accentGlow)" />
+
+  <!-- Verified Smart Contract Node Badge (Checkmark in Glowing Diamond) -->
+  <g transform="translate(62, 59)">
+    <circle cx="9" cy="9" r="10" fill="#0F172A" stroke="#10B981" stroke-width="2" />
+    <path d="M5 9.5 L8 12.5 L13 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

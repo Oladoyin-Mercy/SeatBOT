@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 
 export const Footer: React.FC = () => {
   return (
@@ -10,14 +11,9 @@ export const Footer: React.FC = () => {
           
           {/* Col 1: Brand */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
-                B
-              </div>
-              <span className="text-base font-bold text-slate-900">
-                BOT<span className="text-blue-600">Seat</span>
-              </span>
-            </div>
+            <Link href="/" className="inline-block">
+              <Logo size="sm" />
+            </Link>
             <p className="text-sm text-slate-600 max-w-sm leading-relaxed">
               A simple, verifiable event seat reservation platform. Reserve your seat and receive digital tickets backed by BOT Chain.
             </p>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/lib/hooks/useWallet";
 import { formatAddress } from "@/lib/config/botchain";
+import { Logo } from "@/components/ui/Logo";
+import { NetworkType } from "@/types";
 import { 
   Ticket, 
   Search, 
@@ -33,6 +35,7 @@ export const Navbar: React.FC = () => {
     isCorrectNetwork,
     switchNetwork,
     networkName,
+    networkType,
     chainId,
     targetConfig,
   } = useWallet();
@@ -50,10 +53,10 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const handleSwitchNetwork = async () => {
+  const handleSwitchNetwork = async (target?: NetworkType) => {
     setIsSwitching(true);
     try {
-      await switchNetwork("mainnet");
+      await switchNetwork(target || networkType);
     } finally {
       setIsSwitching(false);
     }
@@ -73,13 +76,8 @@ export const Navbar: React.FC = () => {
           
           {/* Logo */}
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-sm group-hover:bg-blue-600 transition-colors">
-                B
-              </div>
-              <span className="text-lg font-bold tracking-tight text-slate-900 leading-none">
-                BOT<span className="text-blue-600 font-extrabold">Seat</span>
-              </span>
+            <Link href="/" className="flex items-center group">
+              <Logo size="md" />
             </Link>
 
             {/* Desktop Navigation */}
@@ -111,7 +109,7 @@ export const Navbar: React.FC = () => {
             {/* Network switch prompt when on wrong network */}
             {isConnected && !isCorrectNetwork && (
               <button
-                onClick={handleSwitchNetwork}
+                onClick={() => handleSwitchNetwork()}
                 disabled={isSwitching}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold transition-all shadow-xs active:scale-95"
                 title="Your wallet is on a different network. Click to switch to BOT Chain."
@@ -181,10 +179,41 @@ export const Navbar: React.FC = () => {
                       )}
                     </div>
 
+                    {/* Network Switcher Toggle */}
+                    <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50">
+                      <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">Network</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchNetwork("testnet")}
+                          disabled={isSwitching}
+                          className={`py-1 px-2 rounded-md text-[11px] font-semibold transition-all border ${
+                            networkType === "testnet"
+                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          Testnet (968)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchNetwork("mainnet")}
+                          disabled={isSwitching}
+                          className={`py-1 px-2 rounded-md text-[11px] font-semibold transition-all border ${
+                            networkType === "mainnet"
+                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          Mainnet (677)
+                        </button>
+                      </div>
+                    </div>
+
                     {!isCorrectNetwork && !isDemoWallet && (
                       <div className="px-3 py-1.5 border-b border-slate-100">
                         <button
-                          onClick={handleSwitchNetwork}
+                          onClick={() => handleSwitchNetwork()}
                           disabled={isSwitching}
                           className="w-full py-1.5 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
                         >

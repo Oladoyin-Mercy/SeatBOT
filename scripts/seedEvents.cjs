@@ -10,8 +10,17 @@ if (fs.existsSync(envLocalPath)) {
   require("dotenv").config();
 }
 
-const rpcUrl = process.env.NEXT_PUBLIC_BOT_MAINNET_RPC || "https://rpc.botchain.ai";
-const contractAddress = process.env.NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT || "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b";
+const args = process.argv.slice(2);
+const isTestnet = args.includes("--network") && (args.includes("testnet") || args.includes("botchainTestnet"));
+
+const rpcUrl = isTestnet
+  ? (process.env.NEXT_PUBLIC_BOT_TESTNET_RPC || "https://rpc.bohr.life")
+  : (process.env.NEXT_PUBLIC_BOT_MAINNET_RPC || "https://rpc.botchain.ai");
+
+const contractAddress = isTestnet
+  ? (process.env.NEXT_PUBLIC_BOTSEAT_TESTNET_CONTRACT || "0x52208ddadD40b8A3e1C12B064c43a043dfFFd25D")
+  : (process.env.NEXT_PUBLIC_BOTSEAT_MAINNET_CONTRACT || "0xBA2e0b7CBcEFa99D846E9fDa4b30Ec18d4D3D66b");
+
 const rawKey = (process.env.PRIVATE_KEY || "").trim();
 
 const BOTSEAT_ABI = [
@@ -66,7 +75,7 @@ const INITIAL_EVENTS = [
 ];
 
 async function seed() {
-  console.log("Connecting to BOT Chain Mainnet at:", rpcUrl);
+  console.log(`Connecting to ${isTestnet ? "BOT Chain Testnet" : "BOT Chain Mainnet"} at:`, rpcUrl);
   console.log("Target Contract Address:", contractAddress);
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);

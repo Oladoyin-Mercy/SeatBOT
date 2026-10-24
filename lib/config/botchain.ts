@@ -21,7 +21,8 @@ export const BOT_CHAIN_CONFIG: Record<NetworkType, NetworkConfig> = {
   },
 };
 
-export const DEFAULT_NETWORK: NetworkType = "mainnet";
+export const DEFAULT_NETWORK: NetworkType = 
+  (process.env.NEXT_PUBLIC_DEFAULT_NETWORK as NetworkType) || "testnet";
 
 export function getNetworkConfig(network: NetworkType = DEFAULT_NETWORK): NetworkConfig {
   return BOT_CHAIN_CONFIG[network] || BOT_CHAIN_CONFIG.mainnet;
